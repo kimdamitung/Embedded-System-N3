@@ -1,7 +1,7 @@
 /*
  * AHT10.h
  *
- *  Created on: Mar 21, 2024
+ *  Created on: Mar 23, 2024
  *      Author: duytung
  */
 
@@ -61,4 +61,5 @@ uint8_t  AHT10_readStatusByte();
 uint8_t  AHT10_getCalibrationBit(bool);
 bool     AHT10_enableFactoryCalCoeff();
 uint8_t  AHT10_getBusyBit(bool);
+
 #endif /* INC_AHT10_H_ */

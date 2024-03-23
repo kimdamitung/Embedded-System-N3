@@ -1,12 +1,12 @@
 /*
  * AHT10.c
  *
- *  Created on: Mar 21, 2024
+ *  Created on: Mar 23, 2024
  *      Author: duytung
  */
 
 #include "AHT10.h"
-#include "math.h"
+#include "main.h"
 
 I2C_HandleTypeDef  * _hi2c1;
 uint8_t          _address;

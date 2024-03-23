@@ -5,145 +5,149 @@
  *      Author: duytung
  */
 
-#include "stm32f1xx_hal.h"
-#include "math.h"
 #include "BMP180.h"
+#include "main.h"
 
-extern I2C_HandleTypeDef hi2c1;
-#define BMP180_I2C &hi2c1
+#ifdef __cplusplus
+extern "C"{
+#endif
 
-#define BMP180_ADDRESS 0xEE
-// Defines according to the datsheet
-short AC1 = 0;
-short AC2 = 0;
-short AC3 = 0;
-unsigned short AC4 = 0;
-unsigned short AC5 = 0;
-unsigned short AC6 = 0;
-short B1 = 0;
-short B2 = 0;
-short MB = 0;
-short MC = 0;
-short MD = 0;
+I2C_HandleTypeDef *_bmp180_ui2c;
+BMP180_EEPROM _bmp180_eeprom;
+BMP180_OSS _bmp180_oss;
 
-/********************/
-long UT = 0;
-short oss = 0;
-long UP = 0;
-long X1 = 0;
-long X2 = 0;
-long X3 = 0;
-long B3 = 0;
-long B5 = 0;
-unsigned long B4 = 0;
-long B6 = 0;
-unsigned long B7 = 0;
+const uint8_t BMP180_EEPROM_ADDR_MSB[11] = { 0xaa, 0xac, 0xae, 0xb0, 0xb2, 0xb4, 0xb6, 0xb8, 0xba, 0xbc, 0xbe };
+const uint8_t BMP180_EEPROM_ADDR_LSB[11] = { 0xab, 0xad, 0xaf, 0xb1, 0xb3, 0xb5, 0xb7, 0xb9, 0xbb, 0xbd, 0xbf };
 
-/*******************/
-long Press = 0;
-long Temp = 0;
+const uint8_t BMP180_CMD_TEMP = 0x2e;
+const uint8_t BMP180_DELAY_TEMP = 5;
+const uint8_t BMP180_CMD_PRES[4] = { 0x34, 0x74, 0xb4, 0xf4 };
+const uint8_t BMP180_DELAY_PRES[4] = { 5, 8, 14, 26 };
 
-#define atmPress 101325 //Pa
-
-void read_calliberation_data(void) {
-	uint8_t Callib_Data[22] = { 0 };
-	uint16_t Callib_Start = 0xAA;
-	HAL_I2C_Mem_Read(BMP180_I2C, BMP180_ADDRESS, Callib_Start, 1, Callib_Data,
-			22, HAL_MAX_DELAY);
-
-	AC1 = ((Callib_Data[0] << 8) | Callib_Data[1]);
-	AC2 = ((Callib_Data[2] << 8) | Callib_Data[3]);
-	AC3 = ((Callib_Data[4] << 8) | Callib_Data[5]);
-	AC4 = ((Callib_Data[6] << 8) | Callib_Data[7]);
-	AC5 = ((Callib_Data[8] << 8) | Callib_Data[9]);
-	AC6 = ((Callib_Data[10] << 8) | Callib_Data[11]);
-	B1 = ((Callib_Data[12] << 8) | Callib_Data[13]);
-	B2 = ((Callib_Data[14] << 8) | Callib_Data[15]);
-	MB = ((Callib_Data[16] << 8) | Callib_Data[17]);
-	MC = ((Callib_Data[18] << 8) | Callib_Data[19]);
-	MD = ((Callib_Data[20] << 8) | Callib_Data[21]);
-
+/**
+ * @brief Initializes the BMP180 temperature/pressure sensor.
+ * @param hi2c User I2C handle pointer.
+ */
+void BMP180_Init(I2C_HandleTypeDef *hi2c) {
+	_bmp180_ui2c = hi2c;
 }
 
-// Get uncompensated Temp
-uint16_t Get_UTemp(void) {
-	uint8_t datatowrite = 0x2E;
-	uint8_t Temp_RAW[2] = { 0 };
-	HAL_I2C_Mem_Write(BMP180_I2C, BMP180_ADDRESS, 0xF4, 1, &datatowrite, 1,
-			1000);
-	HAL_Delay(5);  // wait 4.5 ms
-	HAL_I2C_Mem_Read(BMP180_I2C, BMP180_ADDRESS, 0xF6, 1, Temp_RAW, 2, 1000);
-	return ((Temp_RAW[0] << 8) + Temp_RAW[1]);
+/**
+ * @param oss Enum, oversampling setting.
+ * @note Available resolutions: BMP180_LOW, BMP180_STANDARD, BMP180_HIGH, BMP180_ULTRA.
+ * @note Refer to section 3.3.1 of datasheet.
+ */
+void BMP180_SetOversampling(BMP180_OSS oss) {
+	_bmp180_oss = oss;
 }
 
-float BMP180_GetTemp(void) {
-	UT = Get_UTemp();
-	X1 = ((UT - AC6) * (AC5 / (pow(2, 15))));
-	X2 = ((MC * (pow(2, 11))) / (X1 + MD));
-	B5 = X1 + X2;
-	Temp = (B5 + 8) / (pow(2, 4));
-	return Temp / 10.0;
+/**
+ * @brief Updates calibration data.
+ * @note Must be called once before main loop.
+ */
+void BMP180_UpdateCalibrationData(void) {
+	_bmp180_eeprom.BMP180_AC1 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC1]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC1]);
+	_bmp180_eeprom.BMP180_AC2 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC2]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC2]);
+	_bmp180_eeprom.BMP180_AC3 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC3]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC3]);
+	_bmp180_eeprom.BMP180_AC4 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC4]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC4]);
+	_bmp180_eeprom.BMP180_AC5 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC5]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC5]);
+	_bmp180_eeprom.BMP180_AC6 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_AC6]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_AC6]);
+	_bmp180_eeprom.BMP180_B1 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_B1]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_B1]);
+	_bmp180_eeprom.BMP180_B2 = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_B2]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_B2]);
+	_bmp180_eeprom.BMP180_MB = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_MB]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_MB]);
+	_bmp180_eeprom.BMP180_MC = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_MC]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_MC]);
+	_bmp180_eeprom.BMP180_MD = (BMP180_ReadReg(BMP180_EEPROM_ADDR_MSB[BMP180_INDEX_MD]) << 8) | BMP180_ReadReg(BMP180_EEPROM_ADDR_LSB[BMP180_INDEX_MD]);
 }
 
-// Get uncompensated Pressure
-uint32_t Get_UPress(int oss)   // oversampling setting 0,1,2,3
-{
-	uint8_t datatowrite = 0x34 + (oss << 6);
-	uint8_t Press_RAW[3] = { 0 };
-	HAL_I2C_Mem_Write(BMP180_I2C, BMP180_ADDRESS, 0xF4, 1, &datatowrite, 1,
-			1000);
-	switch (oss) {
-	case (0):
-		HAL_Delay(5);
-		break;
-	case (1):
-		HAL_Delay(8);
-		break;
-	case (2):
-		HAL_Delay(14);
-		break;
-	case (3):
-		HAL_Delay(26);
-		break;
-	}
-	HAL_I2C_Mem_Read(BMP180_I2C, BMP180_ADDRESS, 0xF6, 1, Press_RAW, 3, 1000);
-	return (((Press_RAW[0] << 16) + (Press_RAW[1] << 8) + Press_RAW[2])
-			>> (8 - oss));
+/**
+ * @brief Writes to a specific register.
+ * @param reg Address of register to write to.
+ * @param cmd Byte to write.
+ */
+void BMP180_WriteReg(uint8_t reg, uint8_t cmd) {
+	uint8_t arr[2] = { reg, cmd };
+	HAL_I2C_Master_Transmit(_bmp180_ui2c, BMP180_I2C_ADDR << 1, arr, 2, BMP180_I2C_TIMEOUT);
 }
 
-float BMP180_GetPress(int oss) {
-	UP = Get_UPress(oss);
-	X1 = ((UT - AC6) * (AC5 / (pow(2, 15))));
-	X2 = ((MC * (pow(2, 11))) / (X1 + MD));
-	B5 = X1 + X2;
-	B6 = B5 - 4000;
-	X1 = (B2 * (B6 * B6 / (pow(2, 12)))) / (pow(2, 11));
-	X2 = AC2 * B6 / (pow(2, 11));
-	X3 = X1 + X2;
-	B3 = (((AC1 * 4 + X3) << oss) + 2) / 4;
-	X1 = AC3 * B6 / pow(2, 13);
-	X2 = (B1 * (B6 * B6 / (pow(2, 12)))) / (pow(2, 16));
-	X3 = ((X1 + X2) + 2) / pow(2, 2);
-	B4 = AC4 * (unsigned long) (X3 + 32768) / (pow(2, 15));
-	B7 = ((unsigned long) UP - B3) * (50000 >> oss);
-	if (B7 < 0x80000000)
-		Press = (B7 * 2) / B4;
+/**
+ * @brief Reads from a specific register.
+ * @param reg Address of register to read from.
+ * @return Byte read.
+ */
+uint8_t BMP180_ReadReg(uint8_t reg) {
+	HAL_I2C_Master_Transmit(_bmp180_ui2c, BMP180_I2C_ADDR << 1, &reg, 1, BMP180_I2C_TIMEOUT);
+	uint8_t result;
+	HAL_I2C_Master_Receive(_bmp180_ui2c, BMP180_I2C_ADDR << 1, &result, 1, BMP180_I2C_TIMEOUT);
+	return result;
+}
+
+/**
+ * @brief Measures and calculates temperature.
+ * @return Temperature in 0.1 (1/10) degrees Celsius.
+ */
+int32_t BMP180_GetRawTemperature(void) {
+	BMP180_WriteReg(BMP180_CONTROL_REG, BMP180_CMD_TEMP);
+	HAL_Delay(BMP180_DELAY_TEMP);
+	int32_t ut = (BMP180_ReadReg(BMP180_MSB_REG) << 8) | BMP180_ReadReg(BMP180_LSB_REG);
+	int32_t x1 = (ut - _bmp180_eeprom.BMP180_AC6) * _bmp180_eeprom.BMP180_AC5 / (1 << 15);
+	int32_t x2 = (_bmp180_eeprom.BMP180_MC * (1 << 11)) / (x1 + _bmp180_eeprom.BMP180_MD);
+	int32_t b5 = x1 + x2;
+	return (b5 + 8) / (1 << 4);
+}
+
+/**
+ * @brief Measures and calculates temperature.
+ * @return Temperature in degrees Celsius.
+ */
+float BMP180_GetTemperature(void) {
+	int32_t temp = BMP180_GetRawTemperature();
+	return temp / 10.0;
+}
+
+/**
+ * @brief Measures and calculates pressure.
+ * @return Pressure in Pascal(Pa).
+ */
+int32_t BMP180_GetPressure(void) {
+	BMP180_WriteReg(BMP180_CONTROL_REG, BMP180_CMD_TEMP);
+	HAL_Delay(BMP180_DELAY_TEMP);
+	int32_t ut = BMP180_GetUT();
+	BMP180_WriteReg(BMP180_CONTROL_REG, BMP180_CMD_PRES[_bmp180_oss]);
+	HAL_Delay(BMP180_DELAY_PRES[_bmp180_oss]);
+	int32_t up = BMP180_GetUP();
+	int32_t x1 = (ut - _bmp180_eeprom.BMP180_AC6) * _bmp180_eeprom.BMP180_AC5 / (1 << 15);
+	int32_t x2 = (_bmp180_eeprom.BMP180_MC * (1 << 11)) / (x1 + _bmp180_eeprom.BMP180_MD);
+	int32_t b5 = x1 + x2;
+	int32_t b6 = b5 - 4000;
+	x1 = (_bmp180_eeprom.BMP180_B2 * (b6 * b6 / (1 << 12))) / (1 << 11);
+	x2 = _bmp180_eeprom.BMP180_AC2 * b6 / (1 << 11);
+	int32_t x3 = x1 + x2;
+	int32_t b3 = (((_bmp180_eeprom.BMP180_AC1 * 4 + x3) << _bmp180_oss) + 2) / 4;
+	x1 = _bmp180_eeprom.BMP180_AC3 * b6 / (1 << 13);
+	x2 = (_bmp180_eeprom.BMP180_B1 * (b6 * b6 / (1 << 12))) / (1 << 16);
+	x3 = ((x1 + x2) + 2) / 4;
+	uint32_t b4 = _bmp180_eeprom.BMP180_AC4 * (uint32_t) (x3 + 32768) / (1 << 15);
+	uint32_t b7 = ((uint32_t) up - b3) * (50000 >> _bmp180_oss);
+	int32_t p;
+	if (b7 < 0x80000000)
+		p = (b7 * 2) / b4;
 	else
-		Press = (B7 / B4) * 2;
-	X1 = (Press / (pow(2, 8))) * (Press / (pow(2, 8)));
-	X1 = (X1 * 3038) / (pow(2, 16));
-	X2 = (-7357 * Press) / (pow(2, 16));
-	Press = Press + (X1 + X2 + 3791) / (pow(2, 4));
-
-	return Press;
+		p = (b7 / b4) * 2;
+	x1 = (p / (1 << 8)) * (p / (1 << 8));
+	x1 = (x1 * 3038) / (1 << 16);
+	x2 = (-7357 * p) / (1 << 16);
+	p = p + (x1 + x2 + 3791) / (1 << 4);
+	return p;
 }
 
-float BMP180_GetAlt(int oss) {
-	BMP180_GetPress(oss);
-	return 44330 * (1 - (pow((Press / (float) atmPress), 0.19029495718)));
+int32_t BMP180_GetUT(void){
+	return (BMP180_ReadReg(BMP180_MSB_REG) << 8) | BMP180_ReadReg(BMP180_LSB_REG);
 }
 
-void BMP180_Start(void) {
-	read_calliberation_data();
+int32_t BMP180_GetUP(void){
+	return ((BMP180_ReadReg(BMP180_MSB_REG) << 16) | (BMP180_ReadReg(BMP180_LSB_REG) << 8) | BMP180_ReadReg(BMP180_XLSB_REG)) >> (8 - _bmp180_oss);
 }
 
+#ifdef __cplusplus
+}
+#endif

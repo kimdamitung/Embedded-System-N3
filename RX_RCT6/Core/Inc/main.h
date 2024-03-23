@@ -75,6 +75,8 @@ void Error_Handler(void);
 #define IN_4_GPIO_Port GPIOB
 #define LED_Pin GPIO_PIN_8
 #define LED_GPIO_Port GPIOA
+#define Sensor_Pin GPIO_PIN_11
+#define Sensor_GPIO_Port GPIOA
 #define IN_Relay_Pin GPIO_PIN_12
 #define IN_Relay_GPIO_Port GPIOA
 #define LED_1_Pin GPIO_PIN_2

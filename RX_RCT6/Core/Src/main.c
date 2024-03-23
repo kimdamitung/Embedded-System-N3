@@ -34,7 +34,7 @@
 
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
-#define SIZE_RX_BUF 5
+#define SIZE_RX_BUF 4
 
 nrf24 nrfRx;
 uint8_t rx_data[SIZE_RX_BUF];
@@ -81,7 +81,9 @@ static void MX_UART4_Init(void);
  */
 int main(void) {
 	/* USER CODE BEGIN 1 */
-
+	char uart_buf[50];
+	int uart_buf_len;
+	float AHT10_temperature;
 	/* USER CODE END 1 */
 
 	/* MCU Configuration--------------------------------------------------------*/
@@ -107,6 +109,7 @@ int main(void) {
 	MX_I2C1_Init();
 	MX_UART4_Init();
 	/* USER CODE BEGIN 2 */
+	//		HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, 1);
 	nrfRx.CE_port = NRF_CE_GPIO_Port;
 	nrfRx.CE_pin = NRF_CE_Pin;
 	nrfRx.CSN_port = NRF_CSN_GPIO_Port;
@@ -128,8 +131,13 @@ int main(void) {
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-	float Temperature, Pressure, Altitude;
-	char data[100];
+
+	/* Initializes BMP180 sensor and oversampling settings. */
+	BMP180_Init(&hi2c1);
+	BMP180_SetOversampling(BMP180_ULTRA);
+	/* Update calibration data. Must be called once before entering main loop. */
+	BMP180_UpdateCalibrationData();
+
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -139,13 +147,21 @@ int main(void) {
 
 		/* USER CODE BEGIN 3 */
 
-//		Temperature = BMP180_GetTemp();
-//		Pressure = BMP180_GetPress(1);
-//		Altitude = BMP180_GetAlt(0);
 //		sprintf(data, "Temp: %.2f\nPres: %.2f\nAlt: %.2f\n", Temperature, Pressure, Altitude);
-//		HAL_UART_Transmit(&huart4,  (float*)data, sizeof(data), 100);
-//		HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, 1);
+//		sprintf(data, "Temperature: %d\nHumidity: %d\n", temperature, humidity);
+//		HAL_UART_Transmit(&huart4, (uint8_t*) data, sizeof(data), 100);
 //		HAL_Delay(1000);
+		/* Reads temperature. */
+		int32_t temperature = BMP180_GetRawTemperature();
+		/* If you want a floating point number instead, you can call: */
+		//float temperature = BMP180_GetTemperature();
+		/* Reads pressure. */
+		int32_t pressure = BMP180_GetPressure();
+		char buffer[100];
+		sprintf(buffer, "Temperature: %d.%d deg C\nPressure: %d Pa\n",
+				(int) temperature, (int) temperature, (int) pressure);
+		HAL_UART_Transmit(&huart4, buffer, strlen(buffer), 1000);
+
 		if (NRF24_Available(&nrfRx, 0) == 1) {
 			NRF24_Receive(&nrfRx, rx_data, SIZE_RX_BUF);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -452,11 +468,11 @@ static void MX_GPIO_Init(void) {
 	/*Configure GPIO pin Output Level */
 	HAL_GPIO_WritePin(LED_1_GPIO_Port, LED_1_Pin, GPIO_PIN_SET);
 
-	/*Configure GPIO pin : NRF_IRQ_Pin */
-	GPIO_InitStruct.Pin = NRF_IRQ_Pin;
+	/*Configure GPIO pins : NRF_IRQ_Pin Sensor_Pin */
+	GPIO_InitStruct.Pin = NRF_IRQ_Pin | Sensor_Pin;
 	GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
 	GPIO_InitStruct.Pull = GPIO_NOPULL;
-	HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
+	HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 	/*Configure GPIO pins : NRF_CE_Pin NRF_CSN_Pin LED_Pin IN_Relay_Pin */
 	GPIO_InitStruct.Pin = NRF_CE_Pin | NRF_CSN_Pin | LED_Pin | IN_Relay_Pin;
