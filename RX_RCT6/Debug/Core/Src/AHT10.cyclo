@@ -1,0 +1,12 @@
+../Core/Src/AHT10.c:22:6:AHT10_Init	1
+../Core/Src/AHT10.c:31:6:AHT10_begin	1
+../Core/Src/AHT10.c:41:9:AHT10_readRawData	5
+../Core/Src/AHT10.c:78:7:AHT10_readTemperature	4
+../Core/Src/AHT10.c:102:7:AHT10_readHumidity	6
+../Core/Src/AHT10.c:130:6:AHT10_softReset	2
+../Core/Src/AHT10.c:150:6:AHT10_setNormalMode	2
+../Core/Src/AHT10.c:169:6:AHT10_setCycleMode	3
+../Core/Src/AHT10.c:192:9:AHT10_readStatusByte	2
+../Core/Src/AHT10.c:214:9:AHT10_getCalibrationBit	3
+../Core/Src/AHT10.c:232:6:AHT10_enableFactoryCalCoeff	4
+../Core/Src/AHT10.c:266:9:AHT10_getBusyBit	3
