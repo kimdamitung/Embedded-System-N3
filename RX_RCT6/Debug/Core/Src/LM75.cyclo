@@ -1,0 +1,3 @@
+../Core/Src/LM75.c:14:7:findBias	1
+../Core/Src/LM75.c:19:7:temp_correction	1
+../Core/Src/LM75.c:25:7:LM75A_GetTemperature	3
