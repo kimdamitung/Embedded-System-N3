@@ -67,14 +67,14 @@ void Error_Handler(void);
 #define NRF_IRQ_GPIO_Port GPIOB
 #define Button_1_Pin GPIO_PIN_12
 #define Button_1_GPIO_Port GPIOB
-#define WaterBump_Pin GPIO_PIN_13
-#define WaterBump_GPIO_Port GPIOB
 #define Button_3_Pin GPIO_PIN_14
 #define Button_3_GPIO_Port GPIOB
 #define Button_4_Pin GPIO_PIN_15
 #define Button_4_GPIO_Port GPIOB
 #define Button_2_Pin GPIO_PIN_8
 #define Button_2_GPIO_Port GPIOA
+#define WaterBump_Pin GPIO_PIN_9
+#define WaterBump_GPIO_Port GPIOA
 
 /* USER CODE BEGIN Private defines */
 

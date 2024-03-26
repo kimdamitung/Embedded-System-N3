@@ -41,7 +41,7 @@ Idx Name          Size      VMA       LMA       File off  Algn
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  18 .debug_line   000072d0  00000000  00000000  0003da45  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
- 19 .debug_str    0007dfa9  00000000  00000000  00044d15  2**0
+ 19 .debug_str    0007dfa8  00000000  00000000  00044d15  2**0
                   CONTENTS, READONLY, DEBUGGING, OCTETS
  20 .debug_frame  000018e0  00000000  00000000  000c2cc0  2**2
                   CONTENTS, READONLY, DEBUGGING, OCTETS
@@ -1589,9 +1589,9 @@ static void MX_GPIO_Init(void)
  8000af2:	4813      	ldr	r0, [pc, #76]	; (8000b40 <MX_GPIO_Init+0x124>)
  8000af4:	f000 fa66 	bl	8000fc4 <HAL_GPIO_Init>
 
-  /*Configure GPIO pins : Button_1_Pin WaterBump_Pin Button_3_Pin Button_4_Pin */
-  GPIO_InitStruct.Pin = Button_1_Pin|WaterBump_Pin|Button_3_Pin|Button_4_Pin;
- 8000af8:	f44f 4370 	mov.w	r3, #61440	; 0xf000
+  /*Configure GPIO pins : Button_1_Pin Button_3_Pin Button_4_Pin */
+  GPIO_InitStruct.Pin = Button_1_Pin|Button_3_Pin|Button_4_Pin;
+ 8000af8:	f44f 4350 	mov.w	r3, #53248	; 0xd000
  8000afc:	613b      	str	r3, [r7, #16]
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
  8000afe:	2300      	movs	r3, #0
@@ -1605,9 +1605,9 @@ static void MX_GPIO_Init(void)
  8000b0c:	480c      	ldr	r0, [pc, #48]	; (8000b40 <MX_GPIO_Init+0x124>)
  8000b0e:	f000 fa59 	bl	8000fc4 <HAL_GPIO_Init>
 
-  /*Configure GPIO pin : Button_2_Pin */
-  GPIO_InitStruct.Pin = Button_2_Pin;
- 8000b12:	f44f 7380 	mov.w	r3, #256	; 0x100
+  /*Configure GPIO pins : Button_2_Pin WaterBump_Pin */
+  GPIO_InitStruct.Pin = Button_2_Pin|WaterBump_Pin;
+ 8000b12:	f44f 7340 	mov.w	r3, #768	; 0x300
  8000b16:	613b      	str	r3, [r7, #16]
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
  8000b18:	2300      	movs	r3, #0
@@ -1615,7 +1615,7 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
  8000b1c:	2302      	movs	r3, #2
  8000b1e:	61bb      	str	r3, [r7, #24]
-  HAL_GPIO_Init(Button_2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
  8000b20:	f107 0310 	add.w	r3, r7, #16
  8000b24:	4619      	mov	r1, r3
  8000b26:	4805      	ldr	r0, [pc, #20]	; (8000b3c <MX_GPIO_Init+0x120>)

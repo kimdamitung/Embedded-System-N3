@@ -25,7 +25,7 @@ uint8_t Sign = ' ';
 float LM75A_GetTemperature(void) {
 	uint8_t TempHL[2];
 	float Temp = 0.0;
-	float temp_corr = temp_correction(-4.125, -0.5);
+	float temp_corr = temp_correction(28, 31);
 	float sizeof_temp = 0.1;
 	HAL_I2C_Mem_Read(&hi2c2, LM75AD_devAddr, LM75AD_TempReg, I2C_MEMADD_SIZE_8BIT, TempHL, 2, 100);
 	Temp = ((TempHL[0] << 8) | TempHL[1]);
@@ -34,7 +34,7 @@ float LM75A_GetTemperature(void) {
 		Sign = '-';
 	}
 	if(HAL_GPIO_ReadPin(Sensor_GPIO_Port, Sensor_Pin) == GPIO_PIN_RESET)
-		temp_corr = temp_correction(42.285, 59.125);
+		temp_corr = temp_correction(81, 112);
 	Temp = Temp * sizeof_temp / 32 * 10 + temp_corr;
 	return Temp;
 }

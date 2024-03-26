@@ -249,17 +249,17 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(NRF_IRQ_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : Button_1_Pin WaterBump_Pin Button_3_Pin Button_4_Pin */
-  GPIO_InitStruct.Pin = Button_1_Pin|WaterBump_Pin|Button_3_Pin|Button_4_Pin;
+  /*Configure GPIO pins : Button_1_Pin Button_3_Pin Button_4_Pin */
+  GPIO_InitStruct.Pin = Button_1_Pin|Button_3_Pin|Button_4_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
   HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : Button_2_Pin */
-  GPIO_InitStruct.Pin = Button_2_Pin;
+  /*Configure GPIO pins : Button_2_Pin WaterBump_Pin */
+  GPIO_InitStruct.Pin = Button_2_Pin|WaterBump_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLDOWN;
-  HAL_GPIO_Init(Button_2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
