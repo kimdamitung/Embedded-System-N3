@@ -71,17 +71,7 @@ static void MX_I2C2_Init(void);
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
-void Water_Bump_Func(void) {
-	HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, 0);
-	char buffer[13];
-	float Temp = LM75A_GetTemperature();
-	if (Temp > 10 && Temp < 100) {
-		sprintf(buffer, "Temp: %.2f\n\t", Temp);
-		HAL_UART_Transmit(&huart4, (uint8_t*) buffer, sizeof(buffer), 10);
-		HAL_Delay(1000);
-	}
-	HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, (Temp > 75 && Temp < 111) ? GPIO_PIN_SET:GPIO_PIN_RESET);
-}
+
 /* USER CODE END 0 */
 
 /**
@@ -137,7 +127,7 @@ int main(void) {
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_1);
 	__HAL_TIM_SET_COMPARE(&htim2, TIM_CHANNEL_1, 0);
 	HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_2);
-
+	HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, 0);
 	/* USER CODE END 2 */
 
 	/* Infinite loop */
@@ -146,7 +136,15 @@ int main(void) {
 		/* USER CODE END WHILE */
 
 		/* USER CODE BEGIN 3 */
-
+		char buffer[13];
+		float Temp = LM75A_GetTemperature();
+		if (Temp > 10 && Temp < 100) {
+			sprintf(buffer, "Temp: %.2f\n\t", Temp);
+			HAL_UART_Transmit(&huart4, (uint8_t*) buffer, sizeof(buffer), 10);
+			HAL_Delay(1000);
+			if (Temp > 80 && Temp < 120)
+				HAL_GPIO_WritePin(IN_Relay_GPIO_Port, IN_Relay_Pin, 1);
+		}
 		if (NRF24_Available(&nrfRx, 0) == 1) {
 			NRF24_Receive(&nrfRx, rx_data, SIZE_RX_BUF);
 			HAL_GPIO_TogglePin(LED_GPIO_Port, LED_Pin);
@@ -165,7 +163,6 @@ int main(void) {
 				rx_data[1] = 0;
 				rx_data[2] = 0;
 				rx_data[3] = 0;
-				Water_Bump_Func();
 			} else if (rx_data[1] == 1) {
 //				đi lùi
 				HAL_GPIO_WritePin(IN_1_GPIO_Port, IN_1_Pin, GPIO_PIN_RESET);
@@ -180,7 +177,6 @@ int main(void) {
 				rx_data[1] = 0;
 				rx_data[2] = 0;
 				rx_data[3] = 0;
-				Water_Bump_Func();
 			} else if (rx_data[2] == 1) {
 				//				đi phải
 				HAL_GPIO_WritePin(IN_1_GPIO_Port, IN_1_Pin, GPIO_PIN_RESET);
@@ -195,7 +191,6 @@ int main(void) {
 				rx_data[1] = 0;
 				rx_data[2] = 0;
 				rx_data[3] = 0;
-				Water_Bump_Func();
 			} else if (rx_data[3] == 1) {
 				//				đi trái
 				HAL_GPIO_WritePin(IN_1_GPIO_Port, IN_1_Pin, GPIO_PIN_SET);
@@ -210,7 +205,6 @@ int main(void) {
 				rx_data[1] = 0;
 				rx_data[2] = 0;
 				rx_data[3] = 0;
-				Water_Bump_Func();
 			} else {
 				HAL_GPIO_WritePin(IN_1_GPIO_Port, IN_1_Pin, GPIO_PIN_RESET);
 				HAL_GPIO_WritePin(IN_2_GPIO_Port, IN_2_Pin, GPIO_PIN_RESET);
@@ -230,7 +224,6 @@ int main(void) {
 		rx_data[2] = 0;
 		rx_data[3] = 0;
 		rx_data[4] = 0;
-
 	}
 	/* USER CODE END 3 */
 }
